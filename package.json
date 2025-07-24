@@ -1,8 +1,11 @@
 {
-  "name": "tree-sitter-tree-sitter-vb-dotnet",
+  "name": "tree-sitter-vb-dotnet",
   "version": "0.1.0",
   "description": "Tree sitter grammar for VB.NET",
-  "repository": "https://github.com/tree-sitter/tree-sitter-tree_sitter_vb_dotnet",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CodeAnt-AI/tree-sitter-vb-dotnet.git"
+  },
   "license": "MIT",
   "author": {
     "name": "CodeAnt AI",
