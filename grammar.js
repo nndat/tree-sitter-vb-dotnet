@@ -11,19 +11,15 @@
 module.exports = grammar({
   name: 'vbnet',
 
-  // Whitespace and comments to ignore. Exclude newline since VB uses line breaks as statement separators.
+  
   extras: $ => [
     $.comment,
     /[ \t\f\u00A0]+/,        // whitespace except newlines
-    $._line_continuation    // line-continuation sequence (underscore + newline) treated as whitespace:contentReference[oaicite:0]{index=0}
+    $._line_continuation    
   ],
 
-  // Define case-insensitive keywords by listing them as regex via the helper (see `ci` function below).
-  // word: $ => $.identifier,
-
-  // (Potential conflicts can be declared here if needed to resolve ambiguities)
+  
   conflicts: $ => [
-    // e.g., conflicts between different member declarations with similar prefixes can be listed if necessary.
     [$.type, $.invocation],
     [$.type] ,
     [$.new_expression] ,
@@ -38,12 +34,7 @@ module.exports = grammar({
   ],
 
   rules: {
-    // Start symbol for a VB.NET source file
-    // source_file: $ => seq(
-    //   optional($.option_statements),
-    //   repeat($.imports_statement),
-    //   repeat(choice($.attribute_block, $.namespace_block, $.type_declaration))
-    // ),
+    
     source_file: $ => seq(
     optional($.option_statements),
     repeat($.imports_statement),
@@ -51,11 +42,11 @@ module.exports = grammar({
       $.attribute_block,
       $.namespace_block,
       $.type_declaration,
-      alias($._terminator, $.blank_line) // <-- ADD THIS LINE
+      alias($._terminator, $.blank_line) // 
     ))
   ),
 
-    // Option statements (Option Explicit/Strict/Infer/Compare) at file top
+    
     option_statements: $ => repeat1(
       seq(
         kw('Option'),
@@ -191,7 +182,6 @@ module.exports = grammar({
       kw('Structure'),
       kw('Class'),
       kw('New')  // type must have a public parameterless constructor
-      // (Multiple interface constraints can be comma-separated, but for brevity not expanded here)
     ),
 
     // Attributes: <...> blocks attached to declarations
@@ -250,7 +240,7 @@ module.exports = grammar({
     field_declaration: $ => seq(
       optional(field('attributes', $.attribute_block)),
       field('modifiers', optional($.modifiers)),
-      optional(kw('Dim')),  // in classes, Dim is optional syntax sugar
+      optional(kw('Dim')),  
       commaSep1($.variable_declarator),
       $._terminator
     ),
@@ -668,7 +658,7 @@ module.exports = grammar({
         [5, choice('+', '-')],                         // addition and subtraction
         [4, kw('&')],                                  // string concatenation
         [3, choice('<<', '>>')],                       // bit shifts
-        [2, choice('=', '<>', '<', '>', '<=', '>=', kw('Is'), kw('IsNot'), kw('Like'))],  // comparisons:contentReference[oaicite:1]{index=1}
+        [2, choice('=', '<>', '<', '>', '<=', '>=', kw('Is'), kw('IsNot'), kw('Like'))],  
         [1, choice(kw('TypeOf'))],                     // TypeOf ... Is ... (treated separately if needed)
         [0, choice(kw('And'), kw('Or'), kw('Xor'))],   // boolean/bitwise AND/OR/XOR
         [-1, choice(kw('AndAlso'), kw('OrElse'))]      // short-circuit logical operators (lowest precedence)
@@ -709,7 +699,7 @@ module.exports = grammar({
       /&H[0-9A-F]+(?:US|UI|UL|S|I|L|%|&)?/i,
       // Octal literal (prefix &O)
       /&O[0-7]+(?:US|UI|UL|S|I|L|%|&)?/i
-    )),  // Covers decimal, hex & octal forms with type suffixes:contentReference[oaicite:2]{index=2}:contentReference[oaicite:3]{index=3}
+    )),  
 
     floating_point_literal: $ => token(choice(
       // Formats: D (integer) . D (fraction) E? exponent, etc., with optional FP type suffix (F, R, D, !, #, @)
@@ -756,7 +746,6 @@ module.exports = grammar({
     // Line break (statement terminator)
     _newline: $ => /\r?\n/,
 
-    // Line continuation sequence: underscore + newline (with optional whitespace around underscore):contentReference[oaicite:4]{index=4}
     _line_continuation: $ => token(seq('_', /[ \t]*/, /\r?\n/)),
 
     // Statement terminator: newline or colon (for multiple statements on one line)
