@@ -11,7 +11,7 @@
 module.exports = grammar({
   name: 'vbnet',
 
-  
+
   extras: $ => [
     $.comment,
     /[ \t\f\u00A0]+/,        // whitespace except newlines
@@ -30,7 +30,12 @@ module.exports = grammar({
     [$.left_hand_side, $.expression],
     [$.label_statement, $.expression],
     [$.event_declaration],
-    [$.if_statement]
+    [$.if_statement],
+    [$.type, $.array_type],
+    [$.if_statement, $.binary_expression],
+    [$.empty_statement, $.if_statement],
+    [$.namespace_name, $.attribute],
+    [$.namespace_name],
   ],
 
   rules: {
@@ -81,11 +86,24 @@ module.exports = grammar({
     ),
 
     // Namespace block: Namespace Name ... End Namespace
+    // namespace_block: $ => seq(
+    //   kw('Namespace'),
+    //   field('name', $.namespace_name),
+    //   $._terminator,
+    //   repeat(choice($.attribute_block, $.type_declaration, $.namespace_block)),
+    //   kw('End'), kw('Namespace'), $._terminator
+    // ),
     namespace_block: $ => seq(
       kw('Namespace'),
       field('name', $.namespace_name),
       $._terminator,
-      repeat(choice($.attribute_block, $.type_declaration, $.namespace_block)),
+      repeat(choice(
+        $.attribute_block, 
+        $.type_declaration, 
+        $.namespace_block,
+        $.imports_statement,  // Allow imports inside namespace
+        alias($._terminator, $.blank_line)  // Allow blank lines
+      )),
       kw('End'), kw('Namespace'), $._terminator
     ),
 
@@ -191,10 +209,15 @@ module.exports = grammar({
       '>',
       $._terminator
     ),
+    // attribute: $ => seq(
+    //   optional(seq(field('target', $.identifier), ':')),  // e.g., Assembly: or Module: target
+    //   field('name', $.identifier),
+    //   optional($.argument_list)  // arguments in parentheses
+    // ),
     attribute: $ => seq(
-      optional(seq(field('target', $.identifier), ':')),  // e.g., Assembly: or Module: target
-      field('name', $.identifier),
-      optional($.argument_list)  // arguments in parentheses
+      optional(seq(field('target', $.identifier), ':')),
+      field('name', choice($.identifier, $.namespace_name)),
+      optional($.argument_list)
     ),
 
     // Modifiers (public/private/etc.). Multiple modifiers can appear in sequence.
@@ -256,8 +279,23 @@ module.exports = grammar({
     // Type (for variables, parameters, return types, etc.)
     type: $ => choice(
       $.primitive_type,
+      $.array_type,
+      $.generic_type,
       seq($.namespace_name, optional($.type_argument_list), optional($.array_rank_specifier))
     ),
+
+    generic_type: $ => prec.left(3, seq(
+      $.namespace_name,
+      $.type_argument_list,
+      optional($.array_rank_specifier)
+    )),
+
+    array_type: $ => seq(
+      choice($.primitive_type, $.namespace_name),
+      optional($.type_argument_list),
+      $.array_rank_specifier
+    ),
+
     primitive_type: $ => token(choice(  // built-in types
       kw('Boolean'), kw('Byte'), kw('Short'), kw('Integer'), kw('Long'),
       kw('Single'), kw('Double'), kw('Decimal'),
@@ -368,12 +406,20 @@ module.exports = grammar({
 
     // Parameter list for methods/delegates (Parentheses with comma-separated parameters)
     parameter_list: $ => seq('(', optional(commaSep($.parameter)), ')'),
+    // parameter: $ => seq(
+    //   optional(choice(kw('ByVal'), kw('ByRef'), kw('ParamArray'))),
+    //   field('name', $.identifier),
+    //   optional($.array_rank_specifier),
+    //   optional($.as_clause),
+    //   optional(seq('=', field('default_value', $.expression)))  // default parameter value
+    // ),
     parameter: $ => seq(
-      optional(choice(kw('ByVal'), kw('ByRef'), kw('ParamArray'))),
+      optional($.attribute_block),  // Add support for attributes on parameters
+      optional(choice(kw('Optional'), kw('ByVal'), kw('ByRef'), kw('ParamArray'))),
       field('name', $.identifier),
       optional($.array_rank_specifier),
       optional($.as_clause),
-      optional(seq('=', field('default_value', $.expression)))  // default parameter value
+      optional(seq('=', field('default_value', $.expression)))
     ),
 
     // *** Statements (inside procedures or blocks) ***
@@ -401,7 +447,8 @@ module.exports = grammar({
       $.throw_statement,
       $.goto_statement,
       $.redim_statement,
-      $.preprocessor_directive  // allow preprocessor directives in code flow
+      $.preprocessor_directive,  // allow preprocessor directives in code flow
+      $.compound_assignment_statement,
     ),
 
     empty_statement: $ => prec(1, $._terminator),  // a standalone line break (no-op statement)
@@ -415,6 +462,13 @@ module.exports = grammar({
         optional($.as_clause),
         optional(seq('=', field('initializer', $.expression)))
       )),
+      $._terminator
+    ),
+
+    compound_assignment_statement: $ => seq(
+      field('left', $.left_hand_side),
+      field('operator', choice('+=', '-=', '*=', '/=', '\\=', '^=', '&=', '<<=', '>>=')),
+      field('right', $.expression),
       $._terminator
     ),
 
@@ -435,21 +489,47 @@ module.exports = grammar({
       $._terminator
     ),
 
+    // if_statement: $ => choice(
+    //   // Single-line If
+    //   seq(
+    //     kw('If'), field('condition', $.expression), kw('Then'),
+    //     field('then_branch', $.statement),
+    //     optional(seq(kw('Else'), field('else_branch', $.statement)))
+    //   ),
+    //   // Block If/ElseIf/Else
+    //   seq(
+    //     kw('If'), field('condition', $.expression), kw('Then'), $._terminator,
+    //     repeat($.statement),
+    //     repeat(seq(kw('ElseIf'), $.expression, kw('Then'), $._terminator, repeat($.statement))),
+    //     optional(seq(kw('Else'), $._terminator, repeat($.statement))),
+    //     kw('End'), kw('If'), $._terminator
+    //   )
+    // ),
     if_statement: $ => choice(
       // Single-line If
-      seq(
+      prec(2, seq(
         kw('If'), field('condition', $.expression), kw('Then'),
-        field('then_branch', $.statement),
-        optional(seq(kw('Else'), field('else_branch', $.statement)))
-      ),
+        field('then_branch', choice($.statement, $.expression)),
+        optional(seq(kw('Else'), field('else_branch', choice($.statement, $.expression))))
+      )),
       // Block If/ElseIf/Else
-      seq(
+      prec(1, seq(
         kw('If'), field('condition', $.expression), kw('Then'), $._terminator,
         repeat($.statement),
-        repeat(seq(kw('ElseIf'), $.expression, kw('Then'), $._terminator, repeat($.statement))),
-        optional(seq(kw('Else'), $._terminator, repeat($.statement))),
+        repeat($.elseif_clause),
+        optional($.else_clause),
         kw('End'), kw('If'), $._terminator
-      )
+      ))
+    ),
+
+    elseif_clause: $ => seq(
+      kw('ElseIf'), field('condition', $.expression), kw('Then'), $._terminator,
+      repeat($.statement)
+    ),
+
+    else_clause: $ => seq(
+      kw('Else'), $._terminator,
+      repeat($.statement)
     ),
 
     select_case_statement: $ => seq(
@@ -492,14 +572,37 @@ module.exports = grammar({
           kw('Loop'), $._terminator)
     ),
 
+    // for_statement: $ => seq(
+    //   kw('For'),
+    //   field('variable', $.identifier), '=', field('start', $.expression),
+    //   kw('To'), field('end', $.expression),
+    //   optional(seq(kw('Step'), field('step', $.expression))),
+    //   $._terminator,
+    //   repeat($.statement),
+    //   kw('Next'), optional(alias($.identifier, $.variable)), $._terminator
+    // ),
     for_statement: $ => seq(
       kw('For'),
-      field('variable', $.identifier), '=', field('start', $.expression),
+      choice(
+        // With type declaration
+        seq(
+          field('variable', $.identifier),
+          $.as_clause,
+          '=',
+          field('start', $.expression)
+        ),
+        // Without type declaration
+        seq(
+          field('variable', $.identifier),
+          '=',
+          field('start', $.expression)
+        )
+      ),
       kw('To'), field('end', $.expression),
       optional(seq(kw('Step'), field('step', $.expression))),
       $._terminator,
       repeat($.statement),
-      kw('Next'), optional(alias($.identifier, $.variable)), $._terminator
+      kw('Next'), optional(field('variable', $.identifier)), $._terminator
     ),
 
     for_each_statement: $ => seq(
@@ -591,11 +694,38 @@ module.exports = grammar({
       $.unary_expression,
       $.binary_expression,
       $.ternary_expression,
-      $.new_expression
+      $.new_expression,
+      $.lambda_expression,
+      $.array_literal,
+    ),
+
+    array_literal: $ => seq(
+      '{',
+      optional(commaSep($.expression)),
+      '}'
     ),
 
     parenthesized_expression: $ => seq('(', $.expression, ')'),
 
+    lambda_expression: $ => prec.right(seq(
+      choice(kw('Function'), kw('Sub')),
+      '(',
+      optional(commaSep($.lambda_parameter)),
+      ')',
+      choice(
+        $.expression,  // Single expression lambda
+        seq(           // Multi-line lambda
+          $._terminator,
+          repeat($.statement),
+          kw('End'), choice(kw('Function'), kw('Sub'))
+        )
+      )
+    )),
+
+    lambda_parameter: $ => seq(
+      field('name', $.identifier),
+      optional($.as_clause)
+    ),
     
     invocation: $ => prec.left(1, seq(
       field('target', choice($.member_access, $.identifier)),
@@ -613,11 +743,16 @@ module.exports = grammar({
     ),
 
     // Member access (object.member) possibly spanning lines after the dot
-    member_access: $ => seq(
+    // member_access: $ => seq(
+    //   field('object', $.expression),
+    //   token(seq('.', optional(/\r?\n/))),  // allow newline after dot (implicit line continuation)
+    //   field('member', $.identifier)
+    // ),
+    member_access: $ => prec.left(10, seq(
       field('object', $.expression),
-      token(seq('.', optional(/\r?\n/))),  // allow newline after dot (implicit line continuation)
+      '.',
       field('member', $.identifier)
-    ),
+    )),
 
     // Element/array index access: expr(index, index, ...)
     element_access: $ => seq(
@@ -628,11 +763,34 @@ module.exports = grammar({
     ),
 
     // Object creation: New Type[(args)] [ with initializers ]
+    // new_expression: $ => seq(
+    //   kw('New'),
+    //   field('type', $.type),
+    //   optional($.argument_list),
+    //   optional($.object_initializers)
+    // ),
     new_expression: $ => seq(
       kw('New'),
       field('type', $.type),
       optional($.argument_list),
-      optional($.object_initializers)
+      optional(choice(
+        $.object_initializers,
+        $.with_initializer
+      ))
+    ),
+
+    with_initializer: $ => seq(
+      kw('With'),
+      '{',
+      optional(commaSep($.member_initializer)),
+      '}'
+    ),
+
+    member_initializer: $ => seq(
+      '.',
+      field('member', $.identifier),
+      '=',
+      field('value', $.expression)
     ),
     object_initializers: $ => seq(
       '{',
@@ -709,11 +867,38 @@ module.exports = grammar({
       /\d+[FfRrDd!#@]/
     )),
 
-    string_literal: $ => token(seq(
-      '"',
-      repeat(choice(/[^"\r\n]/, /""/)),  // double "" inside represents a quote
+    // string_literal: $ => token(seq(
+    //   '"',
+    //   repeat(choice(/[^"\r\n]/, /""/)),  // double "" inside represents a quote
+    //   '"'
+    // )),
+    string_literal: $ => choice(
+      // Regular string
+      token(seq(
+        '"',
+        repeat(choice(/[^"\r\n]/, /""/)),
+        '"'
+      )),
+      // Interpolated string
+      $.interpolated_string_literal
+    ),
+
+    interpolated_string_literal: $ => seq(
+      '$"',
+      repeat(choice(
+        /[^"{}\r\n]+/,  // Regular text
+        /""/,           // Escaped quote
+        $.interpolation // Interpolated expression
+      )),
       '"'
-    )),
+    ),
+
+    interpolation: $ => seq(
+      '{',
+      $.expression,
+      optional(seq(':', /[^}]+/)), // Format specifier
+      '}'
+    ),
 
     character_literal: $ => token(seq(
       '"',
