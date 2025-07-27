@@ -602,9 +602,19 @@ module.exports = grammar({
       optional(seq(kw('Step'), field('step', $.expression))),
       $._terminator,
       repeat($.statement),
+      // kw('Next'), optional(field('variable', $.identifier)), $._terminator
       kw('Next'), optional(field('variable', $.identifier)), $._terminator
     ),
 
+    // for_each_statement: $ => seq(
+    //   kw('For'), kw('Each'),
+    //   field('variable', $.identifier),
+    //   kw('In'),
+    //   field('collection', $.expression),
+    //   $._terminator,
+    //   repeat($.statement),
+    //   kw('Next'), optional(alias($.identifier, $.variable)), $._terminator
+    // ),
     for_each_statement: $ => seq(
       kw('For'), kw('Each'),
       field('variable', $.identifier),
@@ -612,7 +622,7 @@ module.exports = grammar({
       field('collection', $.expression),
       $._terminator,
       repeat($.statement),
-      kw('Next'), optional(alias($.identifier, $.variable)), $._terminator
+      kw('Next'), optional(field('variable', $.identifier)), $._terminator
     ),
 
     try_statement: $ => seq(
@@ -862,6 +872,7 @@ module.exports = grammar({
     floating_point_literal: $ => token(choice(
       // Formats: D (integer) . D (fraction) E? exponent, etc., with optional FP type suffix (F, R, D, !, #, @)
       /\d+\.\d+([Ee][+-]?\d+)?[FfRrDd!#@]?/,
+      /\d+\.([Ee][+-]?\d+)?[FfRrDd!#@]?/,
       /\.\d+([Ee][+-]?\d+)?[FfRrDd!#@]?/,
       /\d+([Ee][+-]?\d+)[FfRrDd!#@]?/,
       /\d+[FfRrDd!#@]/

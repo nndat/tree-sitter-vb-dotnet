@@ -1117,7 +1117,7 @@
         ]
       },
       "variable": {
-        "multiple": false,
+        "multiple": true,
         "required": true,
         "types": [
           {
@@ -1133,10 +1133,6 @@
       "types": [
         {
           "type": "statement",
-          "named": true
-        },
-        {
-          "type": "variable",
           "named": true
         }
       ]
@@ -3117,10 +3113,6 @@
   },
   {
     "type": "relational_operator",
-    "named": true
-  },
-  {
-    "type": "variable",
     "named": true
   },
   {

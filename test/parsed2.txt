@@ -872,4 +872,4 @@
           value: (expression [133, 18] - [133, 19]
             (literal [133, 18] - [133, 19]
               (integer_literal [133, 18] - [133, 19]))))))))
-/Users/chinmaybharti/codeantai/tree-sitter-vb-dotnet/test/test2.vb	Parse:    1.72 ms	  2456 bytes/ms	(ERROR [40, 62] - [40, 63])
+/Users/chinmaybharti/codeantai/tree-sitter-vb-dotnet/test/test2.vb	Parse:    1.40 ms	  3027 bytes/ms	(ERROR [40, 62] - [40, 63])
