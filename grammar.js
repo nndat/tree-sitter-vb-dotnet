@@ -9,7 +9,7 @@
 
 // Tree-sitter grammar for Visual Basic .NET, based on the official VB.NET language specification.
 module.exports = grammar({
-  name: 'vbnet',
+  name: 'vb_dotnet',
 
 
   extras: $ => [
