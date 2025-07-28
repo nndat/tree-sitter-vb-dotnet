@@ -1,5 +1,5 @@
 [package]
-name = "tree-sitter-tree-sitter-vb-dotnet"
+name = "tree-sitter-vb-dotnet"
 description = "Tree sitter grammar for VB.NET"
 version = "0.1.0"
 authors = ["CodeAnt AI <chinmay@codeant.ai>"]

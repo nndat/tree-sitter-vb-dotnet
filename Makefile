@@ -2,7 +2,7 @@ ifeq ($(OS),Windows_NT)
 $(error Windows is not supported)
 endif
 
-LANGUAGE_NAME := tree-sitter-tree-sitter-vb-dotnet
+LANGUAGE_NAME := tree-sitter-vb-dotnet
 HOMEPAGE_URL := https://github.com/tree-sitter/tree-sitter-tree_sitter_vb_dotnet
 VERSION := 0.1.0
 

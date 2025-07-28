@@ -5,14 +5,11 @@ console.log('Testing tree-sitter-vb-dotnet parser...\n');
 
 // Create parser
 const parser = new Parser();
-try {
+
   parser.setLanguage(VBNet);
   console.log('✓ Language loaded successfully');
   console.log('  Language name:', VBNet.name);
-} catch (e) {
-  console.error('✗ Failed to set language:', e.message);
-  process.exit(1);
-}
+
 
 // Test code
 const sourceCode = `

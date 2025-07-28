@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(tree-sitter-tree-sitter-vb-dotnet
+project(tree-sitter-vb-dotnet
         VERSION "0.1.0"
         DESCRIPTION "Tree sitter grammar for VB.NET"
         HOMEPAGE_URL "https://github.com/tree-sitter/tree-sitter-tree_sitter_vb_dotnet"
@@ -26,35 +26,35 @@ add_custom_command(OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/src/parser.c"
                    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                    COMMENT "Generating parser.c")
 
-add_library(tree-sitter-tree-sitter-vb-dotnet src/parser.c)
+add_library(tree-sitter-vb-dotnet src/parser.c)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/scanner.c)
-  target_sources(tree-sitter-tree-sitter-vb-dotnet PRIVATE src/scanner.c)
+  target_sources(tree-sitter-vb-dotnet PRIVATE src/scanner.c)
 endif()
-target_include_directories(tree-sitter-tree-sitter-vb-dotnet
+target_include_directories(tree-sitter-vb-dotnet
                            PRIVATE src
                            INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/bindings/c>
                                      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-target_compile_definitions(tree-sitter-tree-sitter-vb-dotnet PRIVATE
+target_compile_definitions(tree-sitter-vb-dotnet PRIVATE
                            $<$<BOOL:${TREE_SITTER_REUSE_ALLOCATOR}>:TREE_SITTER_REUSE_ALLOCATOR>
                            $<$<CONFIG:Debug>:TREE_SITTER_DEBUG>)
 
-set_target_properties(tree-sitter-tree-sitter-vb-dotnet
+set_target_properties(tree-sitter-vb-dotnet
                       PROPERTIES
                       C_STANDARD 11
                       POSITION_INDEPENDENT_CODE ON
                       SOVERSION "${TREE_SITTER_ABI_VERSION}.${PROJECT_VERSION_MAJOR}"
                       DEFINE_SYMBOL "")
 
-configure_file(bindings/c/tree-sitter-tree-sitter-vb-dotnet.pc.in
-               "${CMAKE_CURRENT_BINARY_DIR}/tree-sitter-tree-sitter-vb-dotnet.pc" @ONLY)
+configure_file(bindings/c/tree-sitter-vb-dotnet.pc.in
+               "${CMAKE_CURRENT_BINARY_DIR}/tree-sitter-vb-dotnet.pc" @ONLY)
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bindings/c/tree_sitter"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         FILES_MATCHING PATTERN "*.h")
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/tree-sitter-tree-sitter-vb-dotnet.pc"
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/tree-sitter-vb-dotnet.pc"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
-install(TARGETS tree-sitter-tree-sitter-vb-dotnet
+install(TARGETS tree-sitter-vb-dotnet
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 
 file(GLOB QUERIES queries/*.scm)
